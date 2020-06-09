@@ -1,13 +1,12 @@
 import warnings
 from models import KP_Orientation_Net
 import torch
-from tools import train, test
+from tools import train, test, test_image
 import argparse
 import time
 
 
 def main(args):
-
     warnings.filterwarnings('ignore')
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -30,7 +29,7 @@ def main(args):
     print('Total number of Parameters = %s' % sum(p.numel() for p in net.parameters()))
     print('Total number of trainable Parameters = %s' % sum(p.numel() for p in net.parameters() if p.requires_grad))
 
-    if args.resume or args.phase == 'test':
+    if args.resume or args.phase.startswith('test'):
         checkpoint = torch.load(args.resumed_ckpt)
         net.load_state_dict(checkpoint['net_state_dict'])
         print('Resumed Checkpoint :{} is Loaded!'.format(args.resumed_ckpt))
@@ -44,6 +43,9 @@ def main(args):
         net.eval()
         output = test.test(args, net)
         print(output['message'])
+    elif args.phase == 'test_image':
+        net.eval()
+        test_image.test_image(args, net)
     else:
         raise NameError('phase should be either "train" or "test"')
 
@@ -51,7 +53,7 @@ def main(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser('Key-Point and Orientation Estimation Network')
-    parser.add_argument('--phase', default='train', type=str, choices=['train', 'test'],
+    parser.add_argument('--phase', default='train', type=str, choices=['train', 'test', 'test_image'],
                         help='train/test mode selection', required=True)
     parser.add_argument('--use_case', default='Stage1', type=str, choices=['stage1', 'stage2'],
                         help='Coarse/Fine heatmap model training', required=True)
@@ -72,10 +74,12 @@ if __name__ == '__main__':
     parser.add_argument('--mGPU', default=False, action='store_true', help='Multi GPU support')
     parser.add_argument('--stage1_ckpt', default='', help='Path to the stage1 trained model', type=str,
                         required=True if (parser.parse_known_args()[0].use_case == 'stage2' and
-                                         parser.parse_known_args()[0].phase == 'train') else False)
+                                          parser.parse_known_args()[0].phase == 'train') else False)
     parser.add_argument('--resumed_ckpt', default='', help='Path to resume the checkpoint', type=str,
                         required=True if parser.parse_known_args()[0].phase == 'test' or
                                          parser.parse_known_args()[0].resume else False)
+    parser.add_argument('--test_image_dir', type=str,
+                        required=True if parser.parse_known_args()[0].phase == 'test_image' else False)
     if parser.parse_known_args()[0].phase == 'train':
         parser.add_argument('--ckpt',
                             default='./checkpoints/' + parser.parse_known_args()[0].use_case +
