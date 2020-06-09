@@ -46,6 +46,12 @@ def visualize_results(outputs, orientations, inputs, global_index):
             coord = (int(output[i][0] / 56.0 * 224),
                      int(output[i][1] / 56.0 * 224))
             image = cv2.circle(image, coord, 5, (255, 0, 0), 2)
+            image = cv2.putText(image, str(i + 1), coord,
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1,
+                                cv2.LINE_AA)
+            image = cv2.putText(image, orientation_labels[orientations[index]],
+                                (0, image.shape[0]), cv2.FONT_HERSHEY_SIMPLEX,
+                                1, (255, 0, 0), 1, cv2.LINE_AA)
         cv2.imwrite('/tmp/{:03d}_{:03d}.jpg'.format(global_index, index),
                     image)
 
@@ -99,4 +105,3 @@ def test_image(args, net):
                                           predicted_orientation, image_in1, i)
 
                     pbar.update()
-                    break
